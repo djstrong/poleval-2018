@@ -53,6 +53,7 @@ def tag_file(input_name='data/test.tsv',
         mini_batch_size=4
         for line in tqdm.tqdm(input, total=lines):
             s = Sentence(line.rstrip())
+
             batch.append(s)
             if len(batch)==mini_batch_size:
                 tag_batch(taggers, batch, output, mini_batch_size)
@@ -61,6 +62,9 @@ def tag_file(input_name='data/test.tsv',
             tag_batch(taggers, batch, output, mini_batch_size)
 
 def tag_batch(taggers, sentences, output, mini_batch_size):
+    # embed once, needs modified branch of flair
+    taggers[0].embeddings.embed(sentences)
+
     results = []
     for tagger in taggers:
         tagger_results = []
