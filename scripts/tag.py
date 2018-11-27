@@ -10,6 +10,7 @@ import glob
 import fire
 from flair.data import Sentence
 from flair.models import SequenceTagger
+import tqdm
 
 
 def pop_results(s):
@@ -39,12 +40,18 @@ def tag_file(input_name='data/test.tsv',
     taggers = list()
     for file in glob.glob(models_pattern):
         taggers.append(SequenceTagger.load_from_file(file))
+
+    lines=0
+    with open(input_name) as input:
+        for l in input:
+            lines+=1
+
     with open(input_name) as input, open(output_name, 'w') as output:
 
         #create batches
         batch=[]
         mini_batch_size=4
-        for line in input:
+        for line in tqdm.tqdm(input, total=lines):
             s = Sentence(line.rstrip())
             batch.append(s)
             if len(batch)==mini_batch_size:
