@@ -39,4 +39,4 @@ for entities in GROUPS:
                    learning_rate=0.05,
                    mini_batch_size=124,
                    max_epochs=40,
-                   save_model=True)
+                   save_final_model=True)
