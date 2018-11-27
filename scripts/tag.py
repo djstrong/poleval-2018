@@ -66,8 +66,8 @@ def tag_batch(taggers, sentences, output, mini_batch_size):
         z=[]
         for y in x:
             z.extend(y)
-            output.write(' '.join(z) + '\n')
-            output.flush()
+        output.write(' '.join(z) + '\n')
+        output.flush()
 
 
 
