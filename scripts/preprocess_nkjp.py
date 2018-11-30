@@ -29,15 +29,19 @@ class Preprocessor(object):
 				newptrs += self.allptrs(named2ptrs[ptr][1], named2ptrs)
 		return newptrs
 
-	def prepare_fnl(self, tree, nss):
+	def prepare_fnl(self, tree, nss, include_derived):
 		named2ptrs = defaultdict(list)
 		for seg in tree.findall('.//seg', namespaces=nss):
 			named = seg.xpath('./@xml:id')[0]
+			derived=False
 			for f in seg.findall('fs/f', namespaces=nss):
+				if f.get('name') == 'derived':
+					derived=True
 				if f.get('name') == 'type':
 					entity = f.getchildren()[0].get('value')
 				elif f.get('name') == 'subtype':
 					entity += '_' + f.getchildren()[0].get('value')
+			if not include_derived and derived: continue
 			ptrs = [f.get('target').split('_')[-1] if 'named_' not in f.get('target') else f.get('target') for f in seg.findall('ptr', namespaces=nss)]
 			named2ptrs[named] = (entity, ptrs)
 		fnl = list()
@@ -47,15 +51,14 @@ class Preprocessor(object):
 			fnl.append((entity, ptrs))
 		return fnl
 
-	def preprocess(self, devset_path, trainset_path, morphosyntax_paths):
+	def preprocess(self, devset_path, trainset_path, morphosyntax_paths, include_derived=False):
 		with open(devset_path, 'w') as dev, open(trainset_path, 'w') as train:
-			for file in glob.glob(morphosyntax_paths):
+			for file in glob.iglob(morphosyntax_paths):
 				namedfile = file.replace('morphosyntax', 'named')
 				if not os.path.exists(namedfile):
 					continue
-
 				tree, nss = self.prepare_tree(namedfile)
-				fnl = self.prepare_fnl(tree, nss)
+				fnl = self.prepare_fnl(tree, nss, include_derived)
 
 				tree, nss = self.prepare_tree(file)
 				for s in tree.findall('.//s', namespaces=nss):
@@ -73,7 +76,7 @@ class Preprocessor(object):
 						dev.write(' '.join(labels) + '\t' + ' '.join(text) + '\n')
 					else:
 						train.write(' '.join(labels) + '\t' + ' '.join(text) + '\n')
-
+	
 	@staticmethod
 	def prepare_tree(filename):
 		tree = etree.parse(filename)
@@ -83,4 +86,4 @@ class Preprocessor(object):
 
 if __name__ == "__main__":
 	# Usage is simply ./preprocess_nkjp.py
-    fire.Fire(Preprocessor, command="preprocess data/dev.tsv data/train.tsv data/NKJP/*/ann_morphosyntax.xml")
+    fire.Fire(Preprocessor, command="preprocess data/dev.tsv data/train.tsv data/NKJP/*/ann_morphosyntax.xml True")
