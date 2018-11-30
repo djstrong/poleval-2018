@@ -38,9 +38,11 @@ def tag_file(input_name='data/test.tsv',
              output_name='data/out.tsv',
              models_pattern='data/models/*/best-model.pt'):
     taggers = list()
+    i=0
     for file in glob.glob(models_pattern):
         taggers.append(SequenceTagger.load_from_file(file))
-
+        i+=1
+        #if i==2: break
     lines=0
     with open(input_name) as input:
         for l in input:
@@ -50,7 +52,7 @@ def tag_file(input_name='data/test.tsv',
 
         #create batches
         batch=[]
-        mini_batch_size=4
+        mini_batch_size=32
         for line in tqdm.tqdm(input, total=lines):
             s = Sentence(line.rstrip())
 

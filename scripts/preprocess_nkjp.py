@@ -36,17 +36,18 @@ class Preprocessor(object):
 			derived=False
 			for f in seg.findall('fs/f', namespaces=nss):
 				if f.get('name') == 'derived':
+					#entity += 'derived_'
 					derived=True
 				if f.get('name') == 'type':
 					entity = f.getchildren()[0].get('value')
 				elif f.get('name') == 'subtype':
 					entity += '_' + f.getchildren()[0].get('value')
-			if not include_derived and derived: continue
 			ptrs = [f.get('target').split('_')[-1] if 'named_' not in f.get('target') else f.get('target') for f in seg.findall('ptr', namespaces=nss)]
-			named2ptrs[named] = (entity, ptrs)
+			named2ptrs[named] = (entity, ptrs, derived)
 		fnl = list()
 		for named in named2ptrs:
-			entity, ptrs = named2ptrs[named]
+			entity, ptrs, derived = named2ptrs[named]
+			if not include_derived and derived: continue
 			ptrs = self.allptrs(ptrs, named2ptrs)
 			fnl.append((entity, ptrs))
 		return fnl
@@ -76,7 +77,7 @@ class Preprocessor(object):
 						dev.write(' '.join(labels) + '\t' + ' '.join(text) + '\n')
 					else:
 						train.write(' '.join(labels) + '\t' + ' '.join(text) + '\n')
-	
+				
 	@staticmethod
 	def prepare_tree(filename):
 		tree = etree.parse(filename)
@@ -86,4 +87,4 @@ class Preprocessor(object):
 
 if __name__ == "__main__":
 	# Usage is simply ./preprocess_nkjp.py
-    fire.Fire(Preprocessor, command="preprocess data/dev.tsv data/train.tsv data/NKJP/*/ann_morphosyntax.xml True")
+    fire.Fire(Preprocessor, command="preprocess data/dev.tsv data/train.tsv data/NKJP/*/ann_morphosyntax.xml False")
