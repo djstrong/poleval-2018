@@ -66,14 +66,36 @@ def samples_generator(path):
 
             yield s
 
-def samples_generator_sorted(path):
+def split_long_text(text, MAX=1000):
+    index=0
+    while index<len(text):
+        max_fragment=text[index:index+MAX]
+        try:
+            division = max_fragment.rindex('.')+1
+            try:
+                if max_fragment[division]==' ':
+                    division+=1
+            except IndexError:
+                pass
+        except ValueError:
+            try:
+                division = max_fragment.rindex(' ')+1
+            except ValueError:
+                division = len(max_fragment)
+        yield max_fragment[:division]
+        index+=division
+
+def samples_generator_sorted(path, max_text_legth=10000):
     data=[]
     with open(path, newline='') as f:
         reader = csv.reader(f)
         for row in reader:
             data.append(row)
 
-    for row in sorted(data, key=lambda x: len(x[3]), reverse=True):
+    MAX=max_text_legth
+    datas=sorted(data, key=lambda x: len(x[3]), reverse=True)
+    print('Longest text', len(datas[0][3]))
+    for row in datas:
 
         id = row[0]
         print(id)
@@ -81,13 +103,26 @@ def samples_generator_sorted(path):
         sequence = row[2]
         text = row[3]
 
-        s = Sentence(text, use_tokenizer='toki')
-        s.id=id
-        s.text_id=text_id
-        s.sequence=sequence
-        s.ner=[]
+        if len(text)>MAX:
+            for fragment in split_long_text(text, MAX):
+                s = Sentence(fragment, use_tokenizer='toki')
+                s.id=id
+                s.text_id=text_id
+                s.sequence=sequence
+                s.ner=[]
+                s.length=len(fragment)
 
-        yield s
+                yield s
+  
+        else:
+            s = Sentence(text, use_tokenizer='toki')
+            s.id=id
+            s.text_id=text_id
+            s.sequence=sequence
+            s.ner=[]
+            s.length = len(text)
+
+            yield s
 
 def tag(generator, mini_batch_size = 4):
     batch = []
@@ -105,6 +140,9 @@ if __name__ == "__main__":
     import sys
     import jsonlines
 
+    if len(sys.argv)!=2:
+        print("provide path to CSV")
+
     input_path=sys.argv[1]
 
     csv.field_size_limit(sys.maxsize)
@@ -113,12 +151,14 @@ if __name__ == "__main__":
     for file in glob.glob(models_pattern):
         taggers.append(SequenceTagger.load_from_file(file))
 
-    mini_batch_size = 4
+    mini_batch_size = 16
     with jsonlines.open(input_path+'.jsonl', mode='w', compact=True) as writer:
         for batch in tag(samples_generator_sorted(input_path), mini_batch_size):
             for s in batch:
                 writer.write({'ner': s.ner,
                               'id':s.id,
                               'text_id':s.text_id,
-                              'sequence':s.sequence
+                              'sequence':s.sequence,
+                              'length':s.length
                               })
+            del batch
